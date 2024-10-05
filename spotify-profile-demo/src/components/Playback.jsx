@@ -1,5 +1,3 @@
-/* eslint-disable no-unused-vars */
-// src/components/Playback.js
 import { useEffect, useState } from "react";
 
 const Playback = () => {
