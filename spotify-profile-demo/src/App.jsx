@@ -1,4 +1,3 @@
-// src/App.js
 import { useEffect, useState } from "react";
 import {
   generateSpotifyLoginUrl,
@@ -34,8 +33,8 @@ const App = () => {
       {!token && <button onClick={loginToSpotify}>Login to Spotify</button>}
       {token && (
         <>
-          <Playlist />
-          <Playback />
+          <Playlist token={token} />
+          <Playback token={token} />
         </>
       )}
     </div>

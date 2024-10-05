@@ -1,53 +1,62 @@
 import { useEffect, useState } from "react";
 
-const Playback = () => {
-  const [player, setPlayer] = useState(undefined);
-  const token = localStorage.getItem("spotifyToken");
+const Playback = ({ token }) => {
+  const [player, setPlayer] = useState(null);
 
   useEffect(() => {
-    if (window.Spotify && token) {
-      const spotifyPlayer = new window.Spotify.Player({
-        name: "Web Playback SDK",
-        getOAuthToken: (cb) => {
-          cb(token);
-        },
-      });
+    const setupSpotifyPlayer = () => {
+      const script = document.createElement("script");
+      script.src = "https://sdk.scdn.co/spotify-player.js";
+      script.async = true;
 
-      spotifyPlayer.connect();
-      setPlayer(spotifyPlayer);
+      document.body.appendChild(script);
 
-      spotifyPlayer.addListener("ready", ({ device_id }) => {
-        console.log("Ready with Device ID", device_id);
-      });
+      window.onSpotifyWebPlaybackSDKReady = () => {
+        const spotifyPlayer = new window.Spotify.Player({
+          name: "Web Playback SDK",
+          getOAuthToken: (cb) => {
+            cb(token);
+          },
+        });
+
+        spotifyPlayer.connect();
+
+        spotifyPlayer.addListener("ready", ({ device_id }) => {
+          console.log("Ready with Device ID", device_id);
+        });
+
+        spotifyPlayer.addListener("not_ready", ({ device_id }) => {
+          console.log("Device ID has gone offline", device_id);
+        });
+
+        setPlayer(spotifyPlayer);
+      };
+    };
+
+    if (token) {
+      setupSpotifyPlayer();
     }
   }, [token]);
 
-  // Updated playSong function
-  const playSong = (spotifyUri) => {
+  const playSong = async (spotifyUri) => {
     if (player) {
-      // Transfer playback to the web player
-      fetch(`https://api.spotify.com/v1/me/player`, {
-        method: "PUT",
-        body: JSON.stringify({ device_ids: [player._options.id], play: true }),
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      })
-        .then(() => {
-          // Play the song after transferring playback
-          fetch(`https://api.spotify.com/v1/me/player/play`, {
-            method: "PUT",
-            body: JSON.stringify({ uris: [spotifyUri] }),
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-          });
-        })
-        .catch((error) => {
-          console.error("Error transferring playback:", error);
+      try {
+        const response = await fetch(`https://api.spotify.com/v1/me/player/play`, {
+          method: "PUT",
+          body: JSON.stringify({ uris: [spotifyUri] }),
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
         });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error("Error starting playback:", errorData.error.message);
+        }
+      } catch (error) {
+        console.error("Error starting playback:", error);
+      }
     }
   };
 
@@ -61,3 +70,24 @@ const Playback = () => {
 };
 
 export default Playback;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
